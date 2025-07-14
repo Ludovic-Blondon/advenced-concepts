@@ -57,7 +57,7 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-## Debbuging Common Error
+## Debugging Common Errors
 
 Start dev server with debug mode 
 ```shell
@@ -74,4 +74,37 @@ Show it with graph
 npx madge dist/main.js --image graph.png
 ```
 Example :
-![Graph circular reference exampleÒ](graph.png)
+![Graph circular reference example](graph.png)
+
+## Lazy-loading Module
+
+Lazy-loading module is for not importing modules everywhere in the project, example for cronjobs, microservices, etc ...
+
+For generating a module without auto import 
+```shell
+nest g mo rewards --skip-import
+```
+
+This is an example of code for using lazy-loading with rewards module (make sure you have a grantTo method in rewards/rewards.service)
+```typescript
+@Injectable()
+export class CoffeesService {
+  constructor(
+    @Inject(COFFEES_DATA_SOURCE) dataSource: CoffeesDataSource,
+    private readonly lazyModuleLoader: LazyModuleLoader,
+  ) {}
+
+  async create(createCoffeeDto: CreateCoffeeDto) {
+    // Lazy load RewardsModule
+    const rewardsModuleRef = await this.lazyModuleLoader.load(() =>
+      import('../rewards/rewards.module').then((m) => m.RewardsModule),
+    );
+    const { RewardsService } = await import('../rewards/rewards.service');
+    const rewardsService = rewardsModuleRef.get(RewardsService);
+    rewardsService.grantTo();
+    return 'This action adds a new coffee';
+  }
+  
+  // ...
+}
+```
