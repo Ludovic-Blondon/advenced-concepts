@@ -86,7 +86,7 @@ nest g mo rewards --skip-import
 ```
 
 This is an example of code for using lazy-loading with rewards module (make sure you have a grantTo method in rewards/rewards.service)
-```typescript
+```ts
 @Injectable()
 export class CoffeesService {
   constructor(
@@ -106,5 +106,93 @@ export class CoffeesService {
   }
   
   // ...
+}
+```
+
+## Using `DiscoveryService` in NestJS (core)
+
+This module allows you to dynamically explore **providers** and inspect the **metadata** associated with their classes or methods, using the tools provided by the NestJS core (`@nestjs/core`).
+
+### 📚 Usage Example
+
+#### 1. Create CRON service with custom decorators
+
+Create decorators for the cron service instance
+```ts
+// src/scheduler/decorators/interval-host.decorator.ts
+import { SetMetadata } from "@nestjs/common";
+
+export const INTERVAL_HOST_KEY = 'INTERVAL_HOST_KEY';
+export const IntervalHost: ClassDecorator = SetMetadata(INTERVAL_HOST_KEY, true);
+```
+
+```ts
+// src/scheduler/decorators/interval.decorator.ts
+import { SetMetadata } from "@nestjs/common";
+
+export const INTERVAL_KEY = 'INTERVAL_KEY';
+export const Interval = (ms: number) => SetMetadata(INTERVAL_KEY, ms);
+```
+
+Now create a cron service with methods wrapped with the interval decorator to run every second
+```ts
+// src/cron/cron.service.ts
+import { IntervalHost } from 'src/scheduler/decorators/interval-host.decorator';
+import { Interval } from 'src/scheduler/decorators/interval.decorator';
+
+@IntervalHost
+export class CronService {
+    @Interval(1000)
+    everySecond() {
+        console.log('This will be logged every second 🐕');
+    }
+}
+```
+
+Finally, we need to check all providers with the INTERVAL_HOST_KEY and INTERVAL_KEY decorators to apply cron tasks.
+For this, we use the DiscoveryService 
+```ts
+// src/scheduler/interval.scheduler.ts
+import { Injectable, OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
+import { DiscoveryService, MetadataScanner, Reflector } from "@nestjs/core";
+import { INTERVAL_HOST_KEY } from "./decorators/interval-host.decorator";
+import { INTERVAL_KEY } from "./decorators/interval.decorator";
+
+@Injectable()
+export class IntervalScheduler implements OnApplicationBootstrap, OnApplicationShutdown {
+    constructor(
+        private readonly discoveryService: DiscoveryService,
+        private readonly reflector: Reflector,
+        private readonly metadataScanner: MetadataScanner
+    ) { }
+
+    private readonly intervals: NodeJS.Timeout[] = [];
+
+    onApplicationBootstrap() {
+        const providers = this.discoveryService.getProviders();
+        providers.forEach(wrapper => {
+            const { instance } = wrapper;
+            const prototype = instance && Object.getPrototypeOf(instance);
+
+            if (!instance || !prototype) return;
+
+            const intervalHost = this.reflector.get(INTERVAL_HOST_KEY, instance.constructor) ?? false;
+
+            if (!intervalHost) return;
+
+            const methodKeys = this.metadataScanner.getAllMethodNames(prototype);
+            methodKeys.forEach(methodKey => {
+                const interval = this.reflector.get(INTERVAL_KEY, instance[methodKey]);
+                if (interval === undefined) return;
+
+                const intervalRef = setInterval(instance[methodKey], interval);
+                this.intervals.push(intervalRef);
+            });
+        });
+    }
+
+    onApplicationShutdown(_signal?: string) {
+        this.intervals.forEach(interval => clearInterval(interval));
+    }
 }
 ```
