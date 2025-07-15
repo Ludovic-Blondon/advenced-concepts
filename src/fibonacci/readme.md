@@ -1,40 +1,42 @@
 # Worker
 
-Certaine tache peuvent etre gourmande en CPU, dans ce cas on veut éviter de toutes les lancer en même temps pour éviter une surcharge.
+Certaines tâches peuvent être gourmandes en CPU. Dans ce cas, on veut éviter de toutes les lancer en même temps pour éviter une surcharge.
 
-C'est la qu'intervient le worker.
+C'est là qu'intervient le worker.
 
-Il va s'occuper de résoudre une tache et si d'autre arrive en même temps il va les mettre en attente et les résoudre une par une.
+Il va s'occuper de résoudre une tâche et si d'autres arrivent en même temps, il va les mettre en attente et les résoudre une par une.
 
 Voici un exemple :
 
-lancer (requete qui dvrait prendre environ 140 s a résoudre)
+Lancer (requête qui devrait prendre environ 140 s à résoudre) :
 ```shell
 curl -X GET -w "\nTime total: %{time_total}s\n" "localhost:3000/fibonacci/?n=50"
 ```
 
-et en parrallèle 
+Et en parallèle :
 ```shell
 curl -X GET -w "\nTime total: %{time_total}s\n" "localhost:3000/fibonacci/?n=5"
 ```
 
-La deuxième ne sera executé qu'une fois la prmiere terminé
+La deuxième ne sera exécutée qu'une fois la première terminée.
 
-Pendant ce temps l'API reste disponible, essayez de lancer ça pour le vérifier 
+Pendant ce temps, l'API reste disponible. Essayez de lancer ceci pour le vérifier :
 ```shell
 curl -X GET -w "\nTime total: %{time_total}s\n" "localhost:3000/"
 ```
 
-Vous obtiendrez
+Vous obtiendrez :
 ```text
 Hello World!
 Time total: 0.001042s
 ```
 
-Bingo l'API reste disponible et les tache gourmande sont géré avec un système de queue
+Bingo ! L'API reste disponible et les tâches gourmandes sont gérées avec un système de queue.
 
+## Implémentation
 
-Pour ce faire il faut implémenté le fibonacci-worker.host.ts
+Pour ce faire, il faut implémenter le `fibonacci-worker.host.ts` :
+
 ```ts
 import { Injectable, OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
 import { randomUUID } from "crypto";
@@ -72,7 +74,8 @@ export class FibonacciWorkerHost
 }
 ```
 
-mettre la fonction qui résoud la suite de fibonacci dans fibonacci.worker.ts
+Mettre la fonction qui résout la suite de Fibonacci dans `fibonacci.worker.ts` :
+
 ```ts
 import { parentPort } from "worker_threads";
 
@@ -89,7 +92,8 @@ parentPort?.on('message', ({ n, id }) => {
 });
 ```
 
-et enfin l'implémenter dans le controller
+Et enfin l'implémenter dans le controller :
+
 ```ts
 import { Controller, Get, Query } from '@nestjs/common';
 import { FibonacciWorkerHost } from './fibonacci-worker.host';
@@ -106,21 +110,34 @@ export class FibonacciController {
 
 Et le tour est joué !!! 🎉
 
+## Version simplifiée avec Piscina
 
-Ca c'est la version bas niveau avec `worker_thread`mais il y un package pour faire beaucoup plus simple.
+Ce qui précède est la version bas niveau avec `worker_threads`, mais il existe un package pour faire beaucoup plus simple.
 
-Piscina
+### Installation de Piscina
+
 ```shell
 npm i piscina
 ```
 
-Ajouter cette ligne dans le tsconfig.ts
-```ts
+### Configuration TypeScript
+
+Ajouter cette ligne dans le `tsconfig.json` :
+
+```json
+{
+  "compilerOptions": {
+    ...
     "esModuleInterop": true,
+    ...
+  }
+}
 ```
 
-Voici le code a mettre dans le controller.
-Par defaut Piscina met 4 threads en parralèle, pour ce test on va le réglé a 1
+### Implémentation avec Piscina
+
+Voici le code à mettre dans le controller. Par défaut, Piscina met 4 threads en parallèle. Pour ce test, on va le régler à 1 :
+
 ```ts
 import { Controller, Get, Query } from '@nestjs/common';
 import Piscina from 'piscina';
@@ -140,7 +157,8 @@ export class FibonacciController {
 }
 ```
 
-Et adapter le code du worker
+Et adapter le code du worker :
+
 ```ts
 function fib(n: number): number {
     if (n < 2) {
@@ -152,6 +170,6 @@ function fib(n: number): number {
 export default fib;
 ```
 
-Et voila 🎉, nous avons le même résultat.
-Ce coup ci le fichier fibonacci-worker.host.ts peut être supprimer.
-Piscina fait le travail pour nous. 😘
+Et voilà 🎉, nous avons le même résultat !
+
+Cette fois-ci, le fichier `fibonacci-worker.host.ts` peut être supprimé. Piscina fait le travail pour nous. 😘

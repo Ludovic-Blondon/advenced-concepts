@@ -258,6 +258,20 @@ export class IntervalScheduler implements OnApplicationBootstrap, OnApplicationS
 
 ---
 
+## 🧵 Gestion des threads en Node.js
+
+Tu peux consulter un mini-cours illustré dans le fichier suivant :
+
+👉 [Voir le cours sur la gestion des threads en Node.js](src/fibonacci/readme.md)
+
+Ce guide présente deux approches pour exécuter des tâches CPU-intensives en parallèle :  
+- **L’API native `worker_threads`**
+- **La librairie `Piscina` pour une gestion simplifiée des workers**
+
+L’exemple utilisé est le calcul récursif de Fibonacci, un cas classique pour illustrer la parallélisation.
+
+---
+
 ## 🎉 Key Features
 
 - ✅ **Lazy Module Loading** - Load modules on-demand
