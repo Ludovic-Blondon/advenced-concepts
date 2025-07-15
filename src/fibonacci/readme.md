@@ -105,3 +105,53 @@ export class FibonacciController {
 ```
 
 Et le tour est joué !!! 🎉
+
+
+Ca c'est la version bas niveau avec `worker_thread`mais il y un package pour faire beaucoup plus simple.
+
+Piscina
+```shell
+npm i piscina
+```
+
+Ajouter cette ligne dans le tsconfig.ts
+```ts
+    "esModuleInterop": true,
+```
+
+Voici le code a mettre dans le controller.
+Par defaut Piscina met 4 threads en parralèle, pour ce test on va le réglé a 1
+```ts
+import { Controller, Get, Query } from '@nestjs/common';
+import Piscina from 'piscina';
+import { resolve } from 'path';
+
+@Controller('fibonacci')
+export class FibonacciController {
+    private fibonacciWorker = new Piscina({
+        filename: resolve(__dirname, 'fibonacci.worker.js'),
+        maxThreads: 1,
+    });
+
+    @Get()
+    getFibonacci(@Query('n') n = 10) {
+        return this.fibonacciWorker.run(n);
+    }
+}
+```
+
+Et adapter le code du worker
+```ts
+function fib(n: number): number {
+    if (n < 2) {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}
+
+export default fib;
+```
+
+Et voila 🎉, nous avons le même résultat.
+Ce coup ci le fichier fibonacci-worker.host.ts peut être supprimer.
+Piscina fait le travail pour nous. 😘
