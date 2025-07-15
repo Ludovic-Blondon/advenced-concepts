@@ -1,25 +1,34 @@
-# Worker
+# 🚀 Worker
 
-Certaines tâches peuvent être gourmandes en CPU. Dans ce cas, on veut éviter de toutes les lancer en même temps pour éviter une surcharge.
+> **💡 Concept clé :** Les workers permettent de gérer les tâches CPU-intensives sans bloquer l'API principale.
 
-C'est là qu'intervient le worker.
+Certaines tâches peuvent être **gourmandes en CPU**. Dans ce cas, on veut éviter de toutes les lancer en même temps pour éviter une surcharge.
+
+C'est là qu'intervient le **worker** ! 🛠️
 
 Il va s'occuper de résoudre une tâche et si d'autres arrivent en même temps, il va les mettre en attente et les résoudre une par une.
 
-Voici un exemple :
+---
 
+## 🧪 Test pratique
+
+Voici un exemple concret pour tester le comportement :
+
+### ⏱️ Test 1 : Tâche longue
 Lancer (requête qui devrait prendre environ 140 s à résoudre) :
 ```shell
 curl -X GET -w "\nTime total: %{time_total}s\n" "localhost:3000/fibonacci/?n=50"
 ```
 
+### ⚡ Test 2 : Tâche courte en parallèle
 Et en parallèle :
 ```shell
 curl -X GET -w "\nTime total: %{time_total}s\n" "localhost:3000/fibonacci/?n=5"
 ```
 
-La deuxième ne sera exécutée qu'une fois la première terminée.
+> **🎯 Résultat attendu :** La deuxième ne sera exécutée qu'une fois la première terminée.
 
+### ✅ Vérification de la disponibilité de l'API
 Pendant ce temps, l'API reste disponible. Essayez de lancer ceci pour le vérifier :
 ```shell
 curl -X GET -w "\nTime total: %{time_total}s\n" "localhost:3000/"
@@ -31,9 +40,11 @@ Hello World!
 Time total: 0.001042s
 ```
 
-Bingo ! L'API reste disponible et les tâches gourmandes sont gérées avec un système de queue.
+**🎉 Bingo !** L'API reste disponible et les tâches gourmandes sont gérées avec un système de queue.
 
-## Implémentation
+---
+
+## 🔧 Implémentation
 
 Pour ce faire, il faut implémenter le `fibonacci-worker.host.ts` :
 
@@ -108,19 +119,21 @@ export class FibonacciController {
 }
 ```
 
-Et le tour est joué !!! 🎉
+**🎯 Et le tour est joué !!!** 🎉
 
-## Version simplifiée avec Piscina
+---
+
+## 🚀 Version simplifiée avec Piscina
 
 Ce qui précède est la version bas niveau avec `worker_threads`, mais il existe un package pour faire beaucoup plus simple.
 
-### Installation de Piscina
+### 📦 Installation de Piscina
 
 ```shell
 npm i piscina
 ```
 
-### Configuration TypeScript
+### ⚙️ Configuration TypeScript
 
 Ajouter cette ligne dans le `tsconfig.json` :
 
@@ -134,7 +147,7 @@ Ajouter cette ligne dans le `tsconfig.json` :
 }
 ```
 
-### Implémentation avec Piscina
+### 🔧 Implémentation avec Piscina
 
 Voici le code à mettre dans le controller. Par défaut, Piscina met 4 threads en parallèle. Pour ce test, on va le régler à 1 :
 
@@ -170,6 +183,6 @@ function fib(n: number): number {
 export default fib;
 ```
 
-Et voilà 🎉, nous avons le même résultat !
+**🎉 Et voilà !** Nous avons le même résultat !
 
 Cette fois-ci, le fichier `fibonacci-worker.host.ts` peut être supprimé. Piscina fait le travail pour nous. 😘
