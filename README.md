@@ -272,6 +272,14 @@ L’exemple utilisé est le calcul récursif de Fibonacci, un cas classique pour
 
 ---
 
+## Cicuit breaker pattern
+
+Le Circuit Breaker bloque temporairement les appels vers un service défaillant après plusieurs erreurs, pour éviter de surcharger le système. Il teste périodiquement si le service est rétabli avant de rétablir les appels. Cela protège et stabilise les systèmes distribués.
+
+👉 [Voir le cours sur la gestion du circuit breaker Node.js](src/common/interceptors/readme.md)
+
+---
+
 ## 🎉 Key Features
 
 - ✅ **Lazy Module Loading** - Load modules on-demand
