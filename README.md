@@ -272,11 +272,11 @@ L’exemple utilisé est le calcul récursif de Fibonacci, un cas classique pour
 
 ---
 
-## Cicuit breaker pattern
+## Circuit Breaker Pattern 🔌
 
-Le Circuit Breaker bloque temporairement les appels vers un service défaillant après plusieurs erreurs, pour éviter de surcharger le système. Il teste périodiquement si le service est rétabli avant de rétablir les appels. Cela protège et stabilise les systèmes distribués.
+Le **Circuit Breaker** protège les systèmes distribués en bloquant temporairement les appels vers un service défaillant après plusieurs erreurs. Il teste périodiquement si le service est rétabli avant de rétablir les appels.
 
-👉 [Voir le cours sur la gestion du circuit breaker Node.js](src/common/interceptors/readme.md)
+📚 **[Cours complet : Circuit Breaker avec NestJS](src/common/interceptors/readme.md)**
 
 ---
 

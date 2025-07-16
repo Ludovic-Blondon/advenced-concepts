@@ -1,10 +1,13 @@
-# Cicuit breaker pattern
+# Circuit Breaker Pattern 🔌
 
-Le Circuit Breaker bloque temporairement les appels vers un service défaillant après plusieurs erreurs, pour éviter de surcharger le système. Il teste périodiquement si le service est rétabli avant de rétablir les appels. Cela protège et stabilise les systèmes distribués.
+Le **Circuit Breaker** bloque temporairement les appels vers un service défaillant après plusieurs erreurs, pour éviter de surcharger le système. Il teste périodiquement si le service est rétabli avant de rétablir les appels. Cela protège et stabilise les systèmes distribués.
 
-Voici comment l'implémenter
+## 🚀 Implémentation
 
-la logique se trouve dans circuit-beaker.ts
+### Étape 1 : Logique du Circuit Breaker
+
+La logique se trouve dans `circuit-breaker.ts` :
+
 ```ts
 import { CallHandler } from "@nestjs/common";
 import { tap, throwError } from "rxjs";
@@ -67,40 +70,47 @@ export class CircuitBreaker {
 }
 ```
 
-## Explication du Circuit Breaker NestJS
+## 📋 Explication du Circuit Breaker NestJS
 
-Ce code implémente un **Circuit Breaker** qui protège les appels à un service distant en gérant 3 états :
+Ce code implémente un **Circuit Breaker** qui protège les appels à un service distant en gérant **3 états** :
 
-- **CLOSED (fermé)** : appels autorisés normalement.
-- **OPEN (ouvert)** : appels bloqués immédiatement après trop d’échecs.
-- **HALF_OPEN (semi-ouvert)** : période de test où quelques appels sont autorisés pour vérifier si le service est rétabli.
+### 🔒 États du Circuit Breaker
 
-### Fonctionnement principal (`exec`)
+- **🟢 CLOSED (fermé)** : Appels autorisés normalement
+- **🔴 OPEN (ouvert)** : Appels bloqués immédiatement après trop d'échecs
+- **🟡 HALF_OPEN (semi-ouvert)** : Période de test où quelques appels sont autorisés pour vérifier si le service est rétabli
 
-- Si le circuit est **ouvert** et que le délai d’attente n’est pas écoulé, on rejette l’appel avec la dernière erreur.
-- Sinon, on exécute l’appel et on surveille le résultat :
-  - Succès → `handleSuccess()`
-  - Échec → `handleFailure()`
+### ⚙️ Fonctionnement principal (`exec`)
 
-### Gestion des succès (`handleSuccess`)
+- Si le circuit est **ouvert** et que le délai d'attente n'est pas écoulé, on rejette l'appel avec la dernière erreur
+- Sinon, on exécute l'appel et on surveille le résultat :
+  - ✅ **Succès** → `handleSuccess()`
+  - ❌ **Échec** → `handleFailure()`
 
-- Réinitialise le compteur d’échecs.
-- En mode **half-open**, compte les succès.  
-- Si assez de succès consécutifs, referme le circuit.
+### ✅ Gestion des succès (`handleSuccess`)
 
-### Gestion des échecs (`handleFailure`)
+- Réinitialise le compteur d'échecs
+- En mode **half-open**, compte les succès consécutifs
+- Si assez de succès consécutifs, referme le circuit
 
-- Incrémente le compteur d’échecs.
-- Si seuil dépassé ou en mode **half-open**, ouvre le circuit, sauvegarde l’erreur et bloque les appels pendant un délai.
+### ❌ Gestion des échecs (`handleFailure`)
+
+- Incrémente le compteur d'échecs
+- Si seuil dépassé ou en mode **half-open**, ouvre le circuit, sauvegarde l'erreur et bloque les appels pendant un délai
 
 ---
 
-**En résumé :**  
+**💡 En résumé :**  
 Ce pattern évite de surcharger un service défaillant en bloquant les appels après plusieurs erreurs, puis teste périodiquement pour rétablir la connexion quand le service revient.
 
+---
 
+## 🔧 Implémentation de l'Intercepteur
 
-Puis on limplémente dans le circuit-breaker.interceptor.ts
+### Étape 2 : Intercepteur NestJS
+
+On l'implémente dans `circuit-breaker.interceptor.ts` :
+
 ```ts
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
@@ -124,34 +134,40 @@ export class CircuitBreakerInterceptor implements NestInterceptor {
 }
 ```
 
-## Explication de `CircuitBreakerInterceptor`
+## 📖 Explication de `CircuitBreakerInterceptor`
 
 Ce fichier définit un **intercepteur NestJS** qui applique le pattern **Circuit Breaker** aux appels des méthodes des contrôleurs.
 
-### Fonctionnement principal
+### 🔄 Fonctionnement principal
 
-- Pour chaque méthode interceptée (`context.getHandler()`), on associe un **CircuitBreaker** unique via une `WeakMap`.
-- Si un circuit breaker existe déjà pour la méthode, on le réutilise.
-- Sinon, on crée un nouveau `CircuitBreaker` et on l’enregistre.
-- L’intercepteur délègue ensuite l’exécution à la méthode `exec` du circuit breaker, qui gère l’état (ouvert, fermé, semi-ouvert) et les erreurs.
+- Pour chaque méthode interceptée (`context.getHandler()`), on associe un **CircuitBreaker** unique via une `WeakMap`
+- Si un circuit breaker existe déjà pour la méthode, on le réutilise
+- Sinon, on crée un nouveau `CircuitBreaker` et on l'enregistre
+- L'intercepteur délègue ensuite l'exécution à la méthode `exec` du circuit breaker, qui gère l'état (ouvert, fermé, semi-ouvert) et les erreurs
 
 ---
 
-**En résumé :**  
-Cet intercepteur permet d’appliquer automatiquement un circuit breaker différent à chaque méthode d’un contrôleur, assurant ainsi la résilience de chaque endpoint individuellement.
+**💡 En résumé :**  
+Cet intercepteur permet d'appliquer automatiquement un circuit breaker différent à chaque méthode d'un contrôleur, assurant ainsi la résilience de chaque endpoint individuellement.
 
+---
 
+## 🧪 Test du Circuit Breaker
 
-## Test du circuit breaker
+### Étape 3 : Application dans le Contrôleur
 
-On l'implemente dans le CoffeesController
+On l'implémente dans le `CoffeesController` :
+
 ```ts
 @Controller('coffees')
 @UseInterceptors(CircuitBreakerInterceptor)
 export class CoffeesController {
 ```
 
-On throw une erreur dans la méthode finAll
+### 🎯 Simulation d'erreur
+
+On lance une erreur dans la méthode `findAll` :
+
 ```ts
   @Get()
   findAll() {
@@ -161,16 +177,35 @@ On throw une erreur dans la méthode finAll
   }
 ```
 
-Pui on lance dans le terminal
+### 🚀 Test en conditions réelles
+
+Puis on lance dans le terminal :
+
 ```shell
 for i in `seq 1 50`; do curl -w "\n" "http://localhost:3000/coffees"; done
 ```
 
-On remarque que seulement 3 erreurs apparaîssent dans le terminal
-Le circuit a donc fonctionné ! 🎉
+**🎉 Résultat :** On remarque que seulement **3 erreurs** apparaissent dans le terminal. Le circuit a donc fonctionné !
 
-Si on attend une minute et que l'on renvoie trois appel fonctionnel sur une autre route du CoffesController ca va fermer le circuit
+### 🔄 Test de récupération
+
+Après avoir attendu une minute (délai configuré), le circuit passe en état **HALF_OPEN**. Dans cet état :
+
+- **1er appel** : L'appel est autorisé pour tester si le service fonctionne
+- **Si l'appel échoue** : Le circuit repasse immédiatement en état **OPEN** pour 1 minute supplémentaire
+- **Si l'appel réussit** : Le circuit reste en **HALF_OPEN** et autorise 2 autres appels de test
+- **Après 3 succès consécutifs** : Le circuit repasse en état **CLOSED** (normal)
 
 ```shell
-for i in `seq 1 5`; do curl -w "\n" "http://localhost:3000/coffees/1"; done
+# Test après 1 minute d'attente
+for i in `seq 1 10`; do curl -w "\n" "http://localhost:3000/coffees"; done
 ```
+
+---
+
+## 🎯 Avantages du Circuit Breaker
+
+- **🛡️ Protection** : Évite la surcharge des services défaillants
+- **⚡ Performance** : Réduit les temps d'attente en cas d'erreur
+- **🔄 Résilience** : Permet la récupération automatique des services
+- **📊 Monitoring** : Facilite le suivi de l'état des services
